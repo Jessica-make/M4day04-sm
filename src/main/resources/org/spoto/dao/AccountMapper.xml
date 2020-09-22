@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.spoto.dao.AccountMapper">
+
+    <!--配置参数类型 结果类型;  dao实现类   -->
+    <!-- 如果dao接口那里直接写Account ac,这里需要加上parameterType="org.spoto.model.Account"-->
+    <insert id="add" keyProperty="ac.id" useGeneratedKeys="true">
+       INSERT INTO accounts( account, passwd_str) VALUES (#{ac.account},#{ac.passwd})
+    </insert>
+
+    <update id="change">
+       UPDATE accounts SET account = #{account}, passwd_str = #{passwd} WHERE id =#{id}
+    </update>
+
+    <delete id="del">
+        DELETE FROM accounts WHERE id IN (
+        <foreach collection="ids" item="id" separator=",">
+            #{id}
+        </foreach>
+        )
+    </delete>
+
+    <select id="getList" resultMap="accountResultMap">
+        SELECT * FROM accounts t1 <include refid="whereSql"></include>
+    </select>
+
+    <select id="listCount" resultType="java.lang.Integer">
+        SELECT count(*) FROM accounts t1 <include refid="whereSql"></include>
+    </select>
+
+    <!--考虑到统计和查询的sql语句一致，所以提取工具类    -->
+    <sql id="whereSql">
+        <where>
+            <if test="account !=null and account!=''">
+                AND t1.account LIKE CONCAT ('%', #{account},'%')
+            </if>
+            <if test="passwd !=null and passwd!=''">
+                AND t1.passwd_str LIKE CONCAT ('%', #{passwd},'%')
+            </if>
+        </where>
+    </sql>
+
+    <!--关系不明确，映射-->
+    <resultMap id="accountResultMap" type="org.spoto.model.Account">
+        <result column="passwd_str" property="passwd"></result>
+    </resultMap>
+</mapper>

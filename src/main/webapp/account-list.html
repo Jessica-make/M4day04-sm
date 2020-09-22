@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8">
+		<title>账户列表页</title>
+		<link href="plugins\bootstrap\css\bootstrap.min.css" rel="stylesheet">
+		<style>
+			.mypagination{
+				text-align: right;
+				margin-right: 20px;
+			}
+			.mynav .pagination{
+				margin-top: 10px;
+			}
+
+		</style>
+	</head>
+	<body>
+		<div class="my-body">
+
+			<!-- Modal -->
+			<div class="modal fade" id="editMo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+				<div class="modal-dialog" role="document">
+					<div class="modal-content">
+						<div class="modal-header">
+							<button type="button" class="close"  aria-label="Close" @click="hideMo()">
+								<span aria-hidden="true">&times;</span>
+							</button>
+							<h4 class="modal-title" id="myModalLabel">编辑</h4>
+						</div>
+						<div class="modal-body">
+							<div class="form-group">
+								<label for="edAccount">用户名</label>
+								<input type="text" class="form-control" id="edAccount" placeholder="请输入您的用户名" v-model="ed.account">
+							</div>
+							<div class="form-group">
+								<label for="edpasswd">密码</label>
+								<input type="text" class="form-control" id="edpasswd" placeholder="请输入您的密码" v-model="ed.passwd">
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-default" @click="hideMo()">取消</button>
+							<button type="button" class="btn btn-primary" @click="save()">保存</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+			<div class="panel panel-default">
+				<div class="panel-heading">账户列表页数据</div>
+				<div class="panel-body">
+					<form class="form-inline">
+						<button type="button" class="btn btn-success " @click="SelectAll()">
+							{{allSel ? '取消':  '全选' }}
+						</button>
+						<button type="button" class="btn btn-success " @click="openMo()">新增</button>
+
+						<div class="form-group">
+							<div class="input-group">
+								<div class="input-group-addon">用户名</div>
+								<input type="text" class="form-control" placeholder="请输入用户名" v-model="sd.account">
+							</div>
+						</div>
+
+						<div class="form-group">
+							<div class="input-group">
+								<div class="input-group-addon">密码</div>
+								<input type="text" class="form-control" placeholder="请输入密码" v-model="sd.passwd">
+							</div>
+						</div>
+
+						<button type="button" class="btn btn-primary" @click="getList(1)" >搜索</button>
+						<button type="button" class="btn btn-primary" @click="delMore()" >删除</button>
+
+					</form>
+				</div>
+
+			<table class="table table-bordered table-hover table-condensed">
+				<tr class="success">
+					<td>选择</td>
+					<td>ID</td>
+					<td>用户名</td>
+					<td>密码</td>
+					<td>操作</td>
+				</tr>
+			<tr v-for="data in dataList">
+				<td>
+					<input type="checkbox" :id="data.id" :value="data.id" v-model="ids">
+				</td>
+                <td>{{data.id}}</td>
+				<td>{{data.account}}</td>
+				<td>{{data.passwd}}</td>
+				<td>
+					<button type="button" class="btn btn-link" @click="edit(data)">编辑</button>
+					<button type="button" class="btn btn-link" @click="del(data.id)">删除</button>
+				</td>
+			</tr>
+			</table>
+			</div>
+			<nav aria-label="Page navigation" class="mypagination mynav" >
+				<ul class="pagination" >
+					<li>
+						<a href="#" aria-label="Previous" @click="upPage()">
+							<span aria-hidden="true">&laquo;</span>
+						</a>
+					</li>
+					<li v-for="pi in page.pager">
+						<a @click="getList(pi)">{{pi}}</a>
+					</li>
+					<li>
+						<a href="#" aria-label="Next" @click="downPage()">
+							<span aria-hidden="true">&raquo;</span>
+						</a>
+					</li>
+				</ul>
+			</nav>
+
+		</div>
+		<script src="plugins/jq/jquery.min.js"></script>
+		<script src="plugins/bootstrap/js/bootstrap.min.js"></script>
+		<script src="plugins/layer/layer.js"></script>
+		<script src="plugins/vue/vue.js"></script>
+		<script>
+			var app=new Vue({
+
+				el: '.my-body',
+				data: {
+					dataList: [],
+					//搜索数据;
+					sd: {
+						account: '',
+						passwd:''
+					},
+					//分页数据,index代表默认第一页;
+					page: {
+						index: 1,
+						max: 3,
+						pager: [1, 2, 3]
+					},
+					//编辑数据;
+					ed:{
+						//不管是新增和修改，都需要一个id字段;
+						//id默认为0;
+						id:0,
+						account:'',
+						passwd:''
+					},
+					//多选删除;
+					ids:[],
+					//全选
+					allSel:false
+				},
+				methods: {
+					//全选
+					SelectAll: function(){
+						if (this.allSel){
+                          //取消
+                           this.ids=[]
+						}else {
+                          //全选
+                          for(var i=0;i<this.dataList.length;i++){
+                             this.ids.push(this.dataList[i].id);
+						  }
+						}
+						//当点击全选以后，状态改为true;
+						this.allSel=!this.allSel;
+					},
+
+
+					//上一页;
+					upPage: function () {
+						if (this.page.index > 1) {
+							//只有当前页大于1的时候，才需要减1;
+							this.page.index = this.page.index - 1;
+							this.getList(this.page.index);
+						}
+					},
+					downPage: function () {
+						if (this.page.index < this.page.max) {
+							//只有当前页小于1的时候，才需要加1;
+							this.page.index = this.page.index + 1;
+							this.getList(this.page.index);
+						}
+					},
+					//计算分页;
+					runPage: function (max) {
+						//给的最大值要赋值给data里面的max
+						//因为在这个方法里面，runPage并不知道max是什么;
+						this.page.max = max;
+						this.page.pager = [];
+						for (var i = 1; i <= max; i++) {
+							this.page.pager.push(i);
+						}
+					},
+
+					//获取列表数据;
+					getList: function (pageIndex) {
+						//getList并不知道pageIndex代表什么;
+						//然后告诉它是第一页;
+						this.page.index = pageIndex;
+						$.ajax({
+							url: "/account-list.ajax",
+							type: "POST",
+							data: {
+								index: pageIndex,
+								account: app.sd.account,
+								passwd:app.sd.passwd
+							},
+							dataType: "JSON",
+							success: function (data) {
+								app.dataList = data.dataList;
+								app.runPage(data.pageCount);
+							},
+							error: function () {
+								layer.alert("err");
+							}
+						});
+					},
+
+					//打开;
+					openMo: function () {
+
+						$('#editMo').modal({
+							backdrop:'static',
+							keyboard:false
+						});
+					},
+					//关闭;
+					hideMo: function () {
+
+						//关闭前设为空值,把数据不要显示在新增页面;
+						this.ed.id=0;
+						this.ed.account='';
+						this.ed.passwd='';
+						$('#editMo').modal('hide');
+					},
+
+					//编辑;
+					edit:function(data){
+
+					//下面三句是把值初始化到模态框里面;
+                       this.ed.id=data.id;
+                       this.ed.account=data.account;
+                       this.ed.passwd=data.passwd;
+						this.openMo();
+					},
+
+					//保存数据;
+					save:function () {
+
+						$.ajax({
+							url: "/save.ajax",
+							type: "POST",
+							data: {
+								id:app.ed.id,
+								account :app.ed.account,
+								passwd: app.ed.passwd
+							},
+							dataType: "JSON",
+							success: function (resp) {
+								console.log(resp);
+								if (resp.type){
+									//成功之后，关闭保存模态框;
+								    layer.alert('操作成功!');
+									app.hideMo();
+									app.getList(app.page.index);
+								}else {
+									layer.alert('操作失败!');
+								}
+							},
+							error: function () {
+								layer.alert("err");
+							}
+						});
+					},
+
+
+					//删除数据;
+					del:function (delIds) {
+						layer.confirm('确定要删除该数据吗?', {
+							btn: ['删除', '取消'] //按钮
+						},function(index){
+							$.ajax({
+								url: "/del.ajax",
+								type: "POST",
+								data: {
+									ids:delIds
+								},
+								dataType: "JSON",
+								success: function (resp) {
+									console.log(resp);
+									if (resp.type){
+										//成功之后，关闭保存模态框;
+										//index这个表示关闭一次
+										layer.close(index);
+										app.hideMo();
+										app.getList(app.page.index);
+										app.ids=[];
+									}else {
+										layer.alert('删除失败!');
+									}
+								},
+								error: function () {
+									layer.alert("err");
+								}
+							});
+						});
+					},
+
+					//多选删除;
+					delMore:function () {
+						if (this.ids.length<=0){
+							layer.alert('请选择您要删除的数据!');
+							return;
+						}
+							let idstr = this.ids.join(',');
+                            this.del(idstr);
+					}
+				}
+			});
+			//获取第一页数据;
+			app.getList(app.page.index);
+		</script>
+	</body>
+</html>
